@@ -12,9 +12,16 @@
             border: 5px solid #fff;
             border-radius: 10px;
         }
+        #scoreboard {
+            text-align: center;
+            font-size: 24px;
+            color: white;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
+    <div id="scoreboard">Player 1: 0 - Player 2: 0</div>
     <canvas id="gameCanvas"></canvas>
     <script>
         const canvas = document.getElementById("gameCanvas");
@@ -32,6 +39,7 @@
         const paddleWidth = 80;
         const paddleHeight = 15;
         const puckRadius = 15;
+        const goalHeight = 50; // Height of goal area
 
         // Paddle and puck positions and speeds
         let leftPaddle = { x: canvas.width / 2 - paddleWidth / 2, y: 50 };
@@ -40,6 +48,16 @@
 
         let leftTouchId = null;
         let rightTouchId = null;
+
+        // Scoring
+        let player1Score = 0;
+        let player2Score = 0;
+        const winningScore = 10;
+        let gameOver = false;
+
+        function updateScoreboard() {
+            document.getElementById("scoreboard").innerText = `Player 1: ${player1Score} - Player 2: ${player2Score}`;
+        }
 
         // Draw paddles
         function drawPaddle(x, y) {
@@ -57,15 +75,47 @@
             ctx.closePath();
         }
 
+        // Reset puck to the center
+        function resetPuck() {
+            puck.x = canvas.width / 2;
+            puck.y = canvas.height / 2;
+            puck.speedX = (Math.random() > 0.5 ? 4 : -4);
+            puck.speedY = (Math.random() > 0.5 ? 4 : -4);
+        }
+
         // Update game elements
         function update() {
+            if (gameOver) return;
+
             // Move puck
             puck.x += puck.speedX;
             puck.y += puck.speedY;
 
-            // Bounce off walls
-            if (puck.x - puckRadius < 0 || puck.x + puckRadius > canvas.width) puck.speedX *= -1;
-            if (puck.y - puckRadius < 0 || puck.y + puckRadius > canvas.height) puck.speedY *= -1;
+            // Bounce off left and right walls
+            if (puck.x - puckRadius < 0 || puck.x + puckRadius > canvas.width) {
+                puck.speedX *= -1;
+            }
+
+            // Check for goal scoring
+            if (puck.y - puckRadius <= 0) {
+                // Player 2 scores
+                player2Score++;
+                updateScoreboard();
+                if (player2Score >= winningScore) {
+                    gameOver = true;
+                    alert("Player 2 wins!");
+                }
+                resetPuck();
+            } else if (puck.y + puckRadius >= canvas.height) {
+                // Player 1 scores
+                player1Score++;
+                updateScoreboard();
+                if (player1Score >= winningScore) {
+                    gameOver = true;
+                    alert("Player 1 wins!");
+                }
+                resetPuck();
+            }
 
             // Bounce off paddles
             if (
@@ -80,55 +130,4 @@
             if (
                 puck.y + puckRadius > rightPaddle.y &&
                 puck.x > rightPaddle.x &&
-                puck.x < rightPaddle.x + paddleWidth
-            ) {
-                puck.speedY *= -1;
-                puck.y = rightPaddle.y - puckRadius;
-            }
-
-            // Draw everything
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            drawPaddle(leftPaddle.x, leftPaddle.y);
-            drawPaddle(rightPaddle.x, rightPaddle.y);
-            drawPuck();
-        }
-
-        // Handle touch events for mobile controls
-        canvas.addEventListener("touchstart", handleTouchStart, false);
-        canvas.addEventListener("touchmove", handleTouchMove, false);
-        canvas.addEventListener("touchend", handleTouchEnd, false);
-
-        function handleTouchStart(e) {
-            for (let i = 0; i < e.touches.length; i++) {
-                const touch = e.touches[i];
-                if (touch.clientY < canvas.height / 2) leftTouchId = touch.identifier;
-                else rightTouchId = touch.identifier;
-            }
-        }
-
-        function handleTouchMove(e) {
-            e.preventDefault();
-            for (let i = 0; i < e.touches.length; i++) {
-                const touch = e.touches[i];
-                if (touch.identifier === leftTouchId) {
-                    leftPaddle.x = touch.clientX - paddleWidth / 2;
-                    leftPaddle.x = Math.max(0, Math.min(leftPaddle.x, canvas.width - paddleWidth));
-                } else if (touch.identifier === rightTouchId) {
-                    rightPaddle.x = touch.clientX - paddleWidth / 2;
-                    rightPaddle.x = Math.max(0, Math.min(rightPaddle.x, canvas.width - paddleWidth));
-                }
-            }
-        }
-
-        function handleTouchEnd(e) {
-            for (let i = 0; i < e.changedTouches.length; i++) {
-                const touch = e.changedTouches[i];
-                if (touch.identifier === leftTouchId) leftTouchId = null;
-                else if (touch.identifier === rightTouchId) rightTouchId = null;
-            }
-        }
-
-        setInterval(update, 1000 / 60);
-    </script>
-</body>
-</html>
+                puck.x < right
