@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile Air Hockey Game</title>
+    <style>
+        canvas {
+            background: #007acc;
+            display: block;
+            margin: 0 auto;
+            border: 5px solid #fff;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        // Set canvas size based on screen size
+        function resizeCanvas() {
+            canvas.width = Math.min(window.innerWidth - 20, 600);
+            canvas.height = Math.min(window.innerHeight - 100, 800);
+        }
+        resizeCanvas();
+        window.addEventListener("resize", resizeCanvas);
+
+        // Game settings
+        const paddleWidth = 80;
+        const paddleHeight = 15;
+        const puckRadius = 15;
+
+        // Paddle and puck positions and speeds
+        let leftPaddle = { x: canvas.width / 2 - paddleWidth / 2, y: 50 };
+        let rightPaddle = { x: canvas.width / 2 - paddleWidth / 2, y: canvas.height - 70 };
+        let puck = { x: canvas.width / 2, y: canvas.height / 2, speedX: 4, speedY: 4 };
+
+        let leftTouchId = null;
+        let rightTouchId = null;
+
+        // Draw paddles
+        function drawPaddle(x, y) {
+            ctx.fillStyle = "white";
+            ctx.fillRect(x, y, paddleWidth, paddleHeight);
+        }
+
+        // Draw puck as a hollow red circle
+        function drawPuck() {
+            ctx.beginPath();
+            ctx.arc(puck.x, puck.y, puckRadius, 0, Math.PI * 2);
+            ctx.strokeStyle = "red";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.closePath();
+        }
+
+        // Update game elements
+        function update() {
+            // Move puck
+            puck.x += puck.speedX;
+            puck.y += puck.speedY;
+
+            // Bounce off walls
+            if (puck.x - puckRadius < 0 || puck.x + puckRadius > canvas.width) puck.speedX *= -1;
+            if (puck.y - puckRadius < 0 || puck.y + puckRadius > canvas.height) puck.speedY *= -1;
+
+            // Bounce off paddles
+            if (
+                puck.y - puckRadius < leftPaddle.y + paddleHeight &&
+                puck.x > leftPaddle.x &&
+                puck.x < leftPaddle.x + paddleWidth
+            ) {
+                puck.speedY *= -1;
+                puck.y = leftPaddle.y + paddleHeight + puckRadius;
+            }
+
+            if (
+                puck.y + puckRadius > rightPaddle.y &&
+                puck.x > rightPaddle.x &&
+                puck.x < rightPaddle.x + paddleWidth
+            ) {
+                puck.speedY *= -1;
+                puck.y = rightPaddle.y - puckRadius;
+            }
+
+            // Draw everything
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawPaddle(leftPaddle.x, leftPaddle.y);
+            drawPaddle(rightPaddle.x, rightPaddle.y);
+            drawPuck();
+        }
+
+        // Handle touch events for mobile controls
+        canvas.addEventListener("touchstart", handleTouchStart, false);
+        canvas.addEventListener("touchmove", handleTouchMove, false);
+        canvas.addEventListener("touchend", handleTouchEnd, false);
+
+        function handleTouchStart(e) {
+            for (let i = 0; i < e.touches.length; i++) {
+                const touch = e.touches[i];
+                if (touch.clientY < canvas.height / 2) leftTouchId = touch.identifier;
+                else rightTouchId = touch.identifier;
+            }
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            for (let i = 0; i < e.touches.length; i++) {
+                const touch = e.touches[i];
+                if (touch.identifier === leftTouchId) {
+                    leftPaddle.x = touch.clientX - paddleWidth / 2;
+                    leftPaddle.x = Math.max(0, Math.min(leftPaddle.x, canvas.width - paddleWidth));
+                } else if (touch.identifier === rightTouchId) {
+                    rightPaddle.x = touch.clientX - paddleWidth / 2;
+                    rightPaddle.x = Math.max(0, Math.min(rightPaddle.x, canvas.width - paddleWidth));
+                }
+            }
+        }
+
+        function handleTouchEnd(e) {
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const touch = e.changedTouches[i];
+                if (touch.identifier === leftTouchId) leftTouchId = null;
+                else if (touch.identifier === rightTouchId) rightTouchId = null;
+            }
+        }
+
+        setInterval(update, 1000 / 60);
+    </script>
+</body>
+</html>
